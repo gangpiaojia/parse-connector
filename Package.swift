@@ -3,7 +3,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "ParseConnector",
+    name: "parse-connector",
     platforms: [
         .macOS(.v10_15),
     ],
