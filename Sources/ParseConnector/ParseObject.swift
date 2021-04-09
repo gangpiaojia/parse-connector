@@ -30,6 +30,14 @@ extension ParseObject {
         return id?.objectIDValue?.hex ?? id?.stringValue
     }
     
+    public var createdAt: Date? {
+        return self["_created_at"].dateValue
+    }
+    
+    public var updatedAt: Date? {
+        return self["_updated_at"].dateValue
+    }
+    
     public var keys: [String] {
         return Set(data.keys + updated.keys).sorted()
     }
