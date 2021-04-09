@@ -78,13 +78,13 @@ extension ParsePredicateExpression {
              let .equal(.object(value), .key(key)):
             
             guard let objectId = value.id else { throw ParseError.nullObjectId }
-            return try [key: ["$eq": "\(value.class)$\(objectId)".toBSON()]]
+            return try ["_p_\(key)": ["$eq": "\(value.class)$\(objectId)".toBSON()]]
             
         case let .notEqual(.key(key), .object(value)),
              let .notEqual(.object(value), .key(key)):
             
             guard let objectId = value.id else { throw ParseError.nullObjectId }
-            return try [key: ["$ne": "\(value.class)$\(objectId)".toBSON()]]
+            return try ["_p_\(key)": ["$ne": "\(value.class)$\(objectId)".toBSON()]]
             
         case let .lessThan(.key(key), .value(value)),
              let .lessThan(.value(value), .key(key)):

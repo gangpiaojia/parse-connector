@@ -1,4 +1,6 @@
 
+import SwiftBSON
+
 public struct ParseObject {
     
     let `class`: String
@@ -12,9 +14,12 @@ public struct ParseObject {
         self.data = data
     }
     
-    public init(_ class: String) {
+    public init(_ class: String, id: String? = nil) {
         self.class = `class`
         self.data = [:]
+        if let id = id {
+            self.data["_id"] = (try? .objectID(BSONObjectID(id))) ?? .string(id)
+        }
     }
 }
 
@@ -37,6 +42,14 @@ extension ParseObject {
             guard key != "_id" else { fatalError("_id is not writable") }
             updated[key] = newValue
         }
+    }
+}
+
+extension ParseObject {
+    
+    public func fetch(from connection: DBConnection) -> EventLoopFuture<ParseObject?> {
+        guard let id = data["_id"] else { return connection.eventLoop.makeFailedFuture(ParseError.nullObjectId) }
+        return connection.mongoQuery().collection(`class`).findOne().filter(["_id": id]).execute().map { $0.map { ParseObject(class: `class`, data: $0) } }
     }
 }
 
