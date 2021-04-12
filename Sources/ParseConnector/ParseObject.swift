@@ -61,32 +61,20 @@ extension ParseObject {
     }
 }
 
-extension BSONDocument {
-    
-    func combine(_ other: BSONDocument) -> BSONDocument {
-        var copy = self
-        for (key, value) in other {
-            copy[key] = value
-        }
-        return copy
-    }
-}
-
 extension ParseObject {
     
     public func save(to connection: DBConnection) -> EventLoopFuture<ParseObject> {
         
         if let id = data["_id"] {
             
-            return connection.mongoQuery().collection(`class`).updateOne().filter(["_id": id]).update(["$set": BSON(updated)]).execute().flatMapThrowing { result in
+            return connection.mongoQuery().collection(`class`).findOneAndUpdate().filter(["_id": id]).update(["$set": BSON(updated)]).returnDocument(.after).execute().flatMapThrowing { result in
                 
-                guard result == nil else { throw ParseError.unknown }
+                guard let result = result else { throw ParseError.unknown }
                 
-                return ParseObject(class: self.class, data: self.data.combine(self.updated))
+                return ParseObject(class: `class`, data: result)
             }
             
         } else {
-            
             
             return connection.mongoQuery().collection(`class`).insertOne().value(updated).execute().flatMapThrowing { result in
                 
