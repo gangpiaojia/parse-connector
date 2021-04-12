@@ -14,7 +14,7 @@ public struct ParseObject {
         self.data = data
     }
     
-    public init(_ class: String, id: String? = nil) {
+    public init(class: String, id: String? = nil) {
         self.class = `class`
         self.data = [:]
         if let id = id {
