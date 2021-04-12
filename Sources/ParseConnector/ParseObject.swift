@@ -125,7 +125,7 @@ extension ParseObject: Encodable {
 
 extension ParseObject {
     
-    func toPointer() -> String? {
+    public func toPointer() -> String? {
         guard let id = self.id else { return nil }
         return "\(self.class)$\(id)"
     }
