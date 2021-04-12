@@ -23,6 +23,13 @@ public struct ParseQuery {
 
 extension ParseQuery {
     
+    public var eventLoop: EventLoop {
+        return connection.eventLoop
+    }
+}
+
+extension ParseQuery {
+    
     public func `class`(_ class: String) -> ParseQuery {
         return ParseQuery(connection: connection, session: session, class: `class`, filters: filters, limit: nil)
     }
@@ -60,6 +67,16 @@ extension ParseQuery {
 
 extension ParseQuery {
     
+    func mongoQuery() -> DBMongoQuery {
+        if let session = self.session {
+            return connection.mongoQuery().session(session)
+        }
+        return connection.mongoQuery()
+    }
+}
+
+extension ParseQuery {
+    
     public func count() -> EventLoopFuture<Int> {
         
         do {
@@ -74,7 +91,7 @@ extension ParseQuery {
             default: filter = try ["$and": BSON(filters.map { try $0.toBSONDocument() })]
             }
             
-            return connection.mongoQuery().collection(`class`).count().filter(filter).execute()
+            return self.mongoQuery().collection(`class`).count().filter(filter).execute()
             
         } catch let error {
             
@@ -99,7 +116,7 @@ extension ParseQuery {
             default: filter = try ["$and": BSON(filters.map { try $0.toBSONDocument() })]
             }
             
-            let query = connection.mongoQuery().collection(`class`).findOne().filter(filter)
+            let query = self.mongoQuery().collection(`class`).findOne().filter(filter)
             
             return query.execute().map { $0.map { ParseObject(class: `class`, data: $0) } }
             
@@ -127,7 +144,7 @@ extension ParseQuery {
             default: filter = try ["$and": BSON(filters.map { try $0.toBSONDocument() })]
             }
             
-            var query = connection.mongoQuery().collection(`class`).find().filter(filter)
+            var query = self.mongoQuery().collection(`class`).find().filter(filter)
             
             if let limit = limit {
                 query = query.limit(limit)

@@ -55,19 +55,27 @@ extension ParseObject {
 
 extension ParseObject {
     
+    private func _fetch(_ query: DBMongoQuery, on eventLoop: EventLoop) -> EventLoopFuture<ParseObject?> {
+        guard let id = data["_id"] else { return eventLoop.makeFailedFuture(ParseError.nullObjectId) }
+        return query.collection(`class`).findOne().filter(["_id": id]).execute().map { $0.map { ParseObject(class: `class`, data: $0) } }
+    }
+    
     public func fetch(from connection: DBConnection) -> EventLoopFuture<ParseObject?> {
-        guard let id = data["_id"] else { return connection.eventLoop.makeFailedFuture(ParseError.nullObjectId) }
-        return connection.mongoQuery().collection(`class`).findOne().filter(["_id": id]).execute().map { $0.map { ParseObject(class: `class`, data: $0) } }
+        return self._fetch(connection.mongoQuery(), on: connection.eventLoop)
+    }
+    
+    public func fetch(from connection: ParseQuery) -> EventLoopFuture<ParseObject?> {
+        return self._fetch(connection.mongoQuery(), on: connection.eventLoop)
     }
 }
 
 extension ParseObject {
     
-    public func save(to connection: DBConnection) -> EventLoopFuture<ParseObject> {
+    private func _save(_ query: DBMongoQuery) -> EventLoopFuture<ParseObject> {
         
         if let id = data["_id"] {
             
-            return connection.mongoQuery().collection(`class`).findOneAndUpdate().filter(["_id": id]).update(["$set": BSON(updated)]).returnDocument(.after).execute().flatMapThrowing { result in
+            return query.collection(`class`).findOneAndUpdate().filter(["_id": id]).update(["$set": BSON(updated)]).returnDocument(.after).execute().flatMapThrowing { result in
                 
                 guard let result = result else { throw ParseError.unknown }
                 
@@ -76,7 +84,7 @@ extension ParseObject {
             
         } else {
             
-            return connection.mongoQuery().collection(`class`).insertOne().value(updated).execute().flatMapThrowing { result in
+            return query.collection(`class`).insertOne().value(updated).execute().flatMapThrowing { result in
                 
                 guard let result = result else { throw ParseError.unknown }
                 
@@ -88,9 +96,28 @@ extension ParseObject {
         }
     }
     
+    public func save(to connection: DBConnection) -> EventLoopFuture<ParseObject> {
+        return self._save(connection.mongoQuery())
+    }
+    
+    public func save(to connection: ParseQuery) -> EventLoopFuture<ParseObject> {
+        return self._save(connection.mongoQuery())
+    }
+}
+
+extension ParseObject {
+    
+    private func _delete(_ query: DBMongoQuery, on eventLoop: EventLoop) -> EventLoopFuture<Void> {
+        guard let id = data["_id"] else { return eventLoop.makeFailedFuture(ParseError.nullObjectId) }
+        return query.collection(`class`).deleteOne().filter(["_id": id]).execute().map { _ in }
+    }
+    
     public func delete(from connection: DBConnection) -> EventLoopFuture<Void> {
-        guard let id = data["_id"] else { return connection.eventLoop.makeFailedFuture(ParseError.nullObjectId) }
-        return connection.mongoQuery().collection(`class`).deleteOne().filter(["_id": id]).execute().map { _ in }
+        return self._delete(connection.mongoQuery(), on: connection.eventLoop)
+    }
+    
+    public func delete(from connection: ParseQuery) -> EventLoopFuture<Void> {
+        return self._delete(connection.mongoQuery(), on: connection.eventLoop)
     }
 }
 
