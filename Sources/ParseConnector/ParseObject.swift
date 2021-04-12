@@ -134,3 +134,27 @@ extension ParseObject: Encodable {
         }
     }
 }
+
+extension ParseObject {
+    
+    func toPointer() -> String? {
+        guard let id = self.id else { return nil }
+        return "\(self.class)$\(id)"
+    }
+}
+
+public func == (lhs: MongoPredicateKey, rhs: ParseObject) -> MongoPredicateExpression {
+    return MongoPredicateKey(key: "_p_\(lhs.key)") == rhs.toPointer()
+}
+
+public func != (lhs: MongoPredicateKey, rhs: ParseObject) -> MongoPredicateExpression {
+    return MongoPredicateKey(key: "_p_\(lhs.key)") != rhs.toPointer()
+}
+
+public func == (lhs: ParseObject, rhs: MongoPredicateKey) -> MongoPredicateExpression {
+    return lhs.toPointer() == MongoPredicateKey(key: "_p_\(rhs.key)")
+}
+
+public func != (lhs: ParseObject, rhs: MongoPredicateKey) -> MongoPredicateExpression {
+    return lhs.toPointer() != MongoPredicateKey(key: "_p_\(rhs.key)")
+}

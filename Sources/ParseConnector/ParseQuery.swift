@@ -16,7 +16,7 @@ public struct ParseQuery {
     
     let `class`: String?
     
-    let filters: [ParsePredicateExpression]
+    let filters: [MongoPredicateExpression]
     
     let limit: Int?
 }
@@ -45,7 +45,7 @@ extension ParseQuery {
 extension ParseQuery {
     
     public func filter(
-        _ predicate: (ParsePredicateBuilder) -> ParsePredicateExpression
+        _ predicate: (MongoPredicateBuilder) -> MongoPredicateExpression
     ) -> ParseQuery {
         return ParseQuery(connection: connection, session: session, class: `class`, filters: filters + [predicate(.init())], limit: nil)
     }
