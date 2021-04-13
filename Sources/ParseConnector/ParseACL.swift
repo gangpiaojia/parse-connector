@@ -29,7 +29,7 @@ extension ParseACL {
 
 extension ParseACL {
     
-    public var global: Perm {
+    public var `public`: Perm {
         get {
             return Perm(acl["*"] ?? [:])
         }
