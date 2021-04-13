@@ -109,21 +109,67 @@ extension ParseQuery {
 
 extension ParseQuery {
     
+    func filterBSONDocument() throws -> BSONDocument {
+        
+        let filter: BSONDocument
+        
+        switch filters.count {
+        case 0: filter = [:]
+        case 1: filter = try filters[0].toBSONDocument()
+        default: filter = try ["$and": BSON(filters.map { try $0.toBSONDocument() })]
+        }
+        
+        return filter
+    }
+}
+
+extension ParseQuery {
+    
     public func findOne() -> EventLoopFuture<ParseObject?> {
         
         do {
             
             guard let `class` = self.class else { throw ParseError.classNotSet }
             
-            let filter: BSONDocument
-            
-            switch filters.count {
-            case 0: filter = [:]
-            case 1: filter = try filters[0].toBSONDocument()
-            default: filter = try ["$and": BSON(filters.map { try $0.toBSONDocument() })]
-            }
+            let filter = try self.filterBSONDocument()
             
             let query = self.mongoQuery().collection(`class`).findOne().filter(filter)
+            
+            return query.execute().map { $0.map { ParseObject(class: `class`, data: $0) } }
+            
+        } catch let error {
+            
+            return connection.eventLoop.makeFailedFuture(error)
+        }
+    }
+    
+    public func findOneAndUpdate(_ update: BSONDocument, upsert: Bool = false) -> EventLoopFuture<ParseObject?> {
+        
+        do {
+            
+            guard let `class` = self.class else { throw ParseError.classNotSet }
+            
+            let filter = try self.filterBSONDocument()
+            
+            let query = self.mongoQuery().collection(`class`).findOneAndUpdate().filter(filter).update(update).upsert(upsert).returnDocument(.after)
+            
+            return query.execute().map { $0.map { ParseObject(class: `class`, data: $0) } }
+            
+        } catch let error {
+            
+            return connection.eventLoop.makeFailedFuture(error)
+        }
+    }
+    
+    public func findOneAndDelete() -> EventLoopFuture<ParseObject?> {
+        
+        do {
+            
+            guard let `class` = self.class else { throw ParseError.classNotSet }
+            
+            let filter = try self.filterBSONDocument()
+            
+            let query = self.mongoQuery().collection(`class`).findOneAndDelete().filter(filter)
             
             return query.execute().map { $0.map { ParseObject(class: `class`, data: $0) } }
             
@@ -143,13 +189,7 @@ extension ParseQuery {
             
             guard let `class` = self.class else { throw ParseError.classNotSet }
             
-            let filter: BSONDocument
-            
-            switch filters.count {
-            case 0: filter = [:]
-            case 1: filter = try filters[0].toBSONDocument()
-            default: filter = try ["$and": BSON(filters.map { try $0.toBSONDocument() })]
-            }
+            let filter = try self.filterBSONDocument()
             
             var query = self.mongoQuery().collection(`class`).find().filter(filter)
             
