@@ -44,8 +44,6 @@ extension ParseObject {
         }
         set {
             self["_acl"] = newValue.acl.toBSON()
-            self["_rprem"] = newValue.rprem.toBSON()
-            self["_wprem"] = newValue.wprem.toBSON()
         }
     }
     
@@ -89,6 +87,12 @@ extension ParseObject {
             var updated = self.updated
             updated["_updated_at"] = Date().toBSON()
             
+            if let _acl = self.updated["_acl"] {
+                let acl = ParseACL(acl: _acl)
+                updated["_rprem"] = acl.rprem.toBSON()
+                updated["_wprem"] = acl.wprem.toBSON()
+            }
+            
             return query.collection(`class`).findOneAndUpdate().filter(["_id": id]).update(["$set": BSON(updated)]).returnDocument(.after).execute().flatMapThrowing { result in
                 
                 guard let result = result else { throw ParseError.unknown }
@@ -101,9 +105,14 @@ extension ParseObject {
             let now = Date().toBSON()
             
             var updated = self.updated
+            
             updated["_id"] = BSONObjectID().hex.toBSON()
             updated["_created_at"] = now
             updated["_updated_at"] = now
+            
+            let acl = ParseACL(acl: self.updated["_acl"] ?? [:])
+            updated["_rprem"] = acl.rprem.toBSON()
+            updated["_wprem"] = acl.wprem.toBSON()
             
             return query.collection(`class`).insertOne().value(updated).execute().flatMapThrowing { result in
                 

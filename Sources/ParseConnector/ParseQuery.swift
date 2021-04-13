@@ -154,6 +154,12 @@ extension ParseQuery {
             var update = update
             update["_updated_at"] = Date().toBSON()
             
+            if let _acl = update["_acl"] {
+                let acl = ParseACL(acl: _acl)
+                update["_rprem"] = acl.rprem.toBSON()
+                update["_wprem"] = acl.wprem.toBSON()
+            }
+            
             let query = self.mongoQuery().collection(`class`).findOneAndUpdate().filter(filter).update(update).upsert(upsert).returnDocument(.after)
             
             return query.execute().map { $0.map { ParseObject(class: `class`, data: $0) } }
