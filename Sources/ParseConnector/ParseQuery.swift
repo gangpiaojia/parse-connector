@@ -47,6 +47,13 @@ extension ParseQuery {
     ) -> EventLoopFuture<T> {
         return connection.mongoQuery().withSession(options: options) { try sessionBody(self._withSession($0)) }
     }
+    
+    public func withTransaction<T>(
+        options: ClientSessionOptions? = nil,
+        _ transactionBody: @escaping (ParseQuery) throws -> EventLoopFuture<T>
+    ) -> EventLoopFuture<T> {
+        return connection.mongoQuery().withTransaction(options: options) { try transactionBody(self._withSession($0)) }
+    }
 }
 
 extension ParseQuery {
