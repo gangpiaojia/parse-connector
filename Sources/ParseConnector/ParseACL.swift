@@ -10,6 +10,10 @@ public struct ParseACL {
     init(acl: BSONDocument) {
         self.acl = acl
     }
+    
+    public init() {
+        self.acl = ["*": ["r": true, "w": true]]
+    }
 }
 
 extension ParseACL {
@@ -71,7 +75,14 @@ extension ParseACL {
     }
 }
 
-extension ParseACL.Perm {
+extension ParseACL: BSONConvertible {
+    
+    public func toBSON() -> BSON {
+        return acl.toBSON()
+    }
+}
+
+extension ParseACL.Perm: BSONConvertible {
     
     public func toBSON() -> BSON {
         var perm: [String: Bool] = [:]
