@@ -38,6 +38,17 @@ extension ParseObject {
         return self["_updated_at"].dateValue
     }
     
+    public var acl: ParseACL {
+        get {
+            return ParseACL(acl: self["_acl"])
+        }
+        set {
+            self["_acl"] = newValue.acl.toBSON()
+            self["_rprem"] = newValue.rprem.toBSON()
+            self["_wprem"] = newValue.wprem.toBSON()
+        }
+    }
+    
     public var keys: [String] {
         return Set(data.keys + updated.keys).sorted()
     }
@@ -75,6 +86,9 @@ extension ParseObject {
         
         if let id = data["_id"] {
             
+            var updated = self.updated
+            updated["_updated_at"] = Date().toBSON()
+            
             return query.collection(`class`).findOneAndUpdate().filter(["_id": id]).update(["$set": BSON(updated)]).returnDocument(.after).execute().flatMapThrowing { result in
                 
                 guard let result = result else { throw ParseError.unknown }
@@ -83,6 +97,12 @@ extension ParseObject {
             }
             
         } else {
+            
+            let now = Date().toBSON()
+            
+            var updated = self.updated
+            updated["_created_at"] = now
+            updated["_updated_at"] = now
             
             return query.collection(`class`).insertOne().value(updated).execute().flatMapThrowing { result in
                 
@@ -155,6 +175,17 @@ extension ParseObject {
     public func toPointer() -> String? {
         guard let id = self.id else { return nil }
         return "\(self.class)$\(id)"
+    }
+}
+
+extension MongoPredicateBuilder {
+    
+    public var createdAt: MongoPredicateKey {
+        return MongoPredicateKey(key: "_created_at")
+    }
+    
+    public var updatedAt: MongoPredicateKey {
+        return MongoPredicateKey(key: "_updated_at")
     }
 }
 

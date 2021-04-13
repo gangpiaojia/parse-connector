@@ -151,6 +151,9 @@ extension ParseQuery {
             
             let filter = try self.filterBSONDocument()
             
+            var update = update
+            update["_updated_at"] = Date().toBSON()
+            
             let query = self.mongoQuery().collection(`class`).findOneAndUpdate().filter(filter).update(update).upsert(upsert).returnDocument(.after)
             
             return query.execute().map { $0.map { ParseObject(class: `class`, data: $0) } }
