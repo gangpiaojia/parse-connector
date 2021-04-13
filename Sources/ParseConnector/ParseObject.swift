@@ -60,6 +60,14 @@ extension ParseObject {
             updated[key] = newValue
         }
     }
+    
+    public mutating func set<T: BSONConvertible>(_ key: String, _ value: T) {
+        self[key] = value.toBSON()
+    }
+    
+    public mutating func set(_ key: String, _ object: ParseObject?) {
+        self["_p_\(key)"] = (object?.toPointer()).toBSON()
+    }
 }
 
 extension ParseObject {
