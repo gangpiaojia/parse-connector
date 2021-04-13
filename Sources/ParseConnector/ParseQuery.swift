@@ -152,7 +152,10 @@ extension ParseQuery {
             let filter = try self.filterBSONDocument()
             
             var update = update
-            update["_updated_at"] = Date().toBSON()
+            
+            let now = Date().toBSON()
+            if upsert { update["_created_at"] = now }
+            update["_updated_at"] = now
             
             if let _acl = update["_acl"] {
                 let acl = ParseACL(acl: _acl)
