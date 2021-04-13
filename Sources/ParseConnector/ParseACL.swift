@@ -18,11 +18,11 @@ public struct ParseACL {
 
 extension ParseACL {
     
-    public var rprem: [String] {
+    public var rperm: [String] {
         return acl.filter { $0.value.documentValue?["r"]?.boolValue == true }.keys
     }
     
-    public var wprem: [String] {
+    public var wperm: [String] {
         return acl.filter { $0.value.documentValue?["w"]?.boolValue == true }.keys
     }
 }

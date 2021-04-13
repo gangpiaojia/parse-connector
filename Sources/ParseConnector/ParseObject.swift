@@ -97,8 +97,8 @@ extension ParseObject {
             
             if let _acl = self.updated["_acl"] {
                 let acl = ParseACL(acl: _acl)
-                updated["_rprem"] = acl.rprem.toBSON()
-                updated["_wprem"] = acl.wprem.toBSON()
+                updated["_rperm"] = acl.rperm.toBSON()
+                updated["_wperm"] = acl.wperm.toBSON()
             }
             
             return query.collection(`class`).findOneAndUpdate().filter(["_id": id]).update(["$set": BSON(updated)]).returnDocument(.after).execute().flatMapThrowing { result in
@@ -119,8 +119,8 @@ extension ParseObject {
             updated["_updated_at"] = now
             
             let acl = ParseACL(acl: self.updated["_acl"] ?? [:])
-            updated["_rprem"] = acl.rprem.toBSON()
-            updated["_wprem"] = acl.wprem.toBSON()
+            updated["_rperm"] = acl.rperm.toBSON()
+            updated["_wperm"] = acl.wperm.toBSON()
             
             return query.collection(`class`).insertOne().value(updated).execute().flatMapThrowing { result in
                 

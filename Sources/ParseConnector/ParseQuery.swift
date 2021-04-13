@@ -156,8 +156,8 @@ extension ParseQuery {
             
             if let _acl = update["_acl"] {
                 let acl = ParseACL(acl: _acl)
-                update["_rprem"] = acl.rprem.toBSON()
-                update["_wprem"] = acl.wprem.toBSON()
+                update["_rperm"] = acl.rperm.toBSON()
+                update["_wperm"] = acl.wperm.toBSON()
             }
             
             let query = self.mongoQuery().collection(`class`).findOneAndUpdate().filter(filter).update(update).upsert(upsert).returnDocument(.after)
