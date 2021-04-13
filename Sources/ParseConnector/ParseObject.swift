@@ -101,6 +101,7 @@ extension ParseObject {
             let now = Date().toBSON()
             
             var updated = self.updated
+            updated["_id"] = BSONObjectID().hex.toBSON()
             updated["_created_at"] = now
             updated["_updated_at"] = now
             
