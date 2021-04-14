@@ -71,8 +71,20 @@ extension ParseObject {
         self["_p_\(key)"] = (object?.toPointer()).toBSON()
     }
     
-    public mutating func update(_ key: String, _ operation: ParseUpdateOperation) {
-        mutated[key] = operation
+    public mutating func increment<T: BSONConvertible & Numeric>(_ key: String, by amount: T) {
+        mutated[key] = .increment(amount.toBSON())
+    }
+    
+    public mutating func multiply<T: BSONConvertible & Numeric>(_ key: String, by amount: T) {
+        mutated[key] = .multiply(amount.toBSON())
+    }
+    
+    public mutating func max<T: BSONConvertible>(_ key: String, by value: T) {
+        mutated[key] = .max(value.toBSON())
+    }
+    
+    public mutating func min<T: BSONConvertible>(_ key: String, by value: T) {
+        mutated[key] = .min(value.toBSON())
     }
 }
 
