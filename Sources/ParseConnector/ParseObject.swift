@@ -1,13 +1,11 @@
 
-import SwiftBSON
-
 public struct ParseObject {
     
     let `class`: String
     
     var data: BSONDocument
     
-    var updated: BSONDocument = [:]
+    var mutated: [String: ParseUpdateOperation] = [:]
     
     init(class: String, data: BSONDocument) {
         self.class = `class`
@@ -48,18 +46,22 @@ extension ParseObject {
     }
     
     public var keys: [String] {
-        return Set(data.keys + updated.keys).sorted()
+        let keys = data.keys + mutated.keys
+        return keys.uniqued()
     }
     
     public subscript(_ key: String) -> BSON {
         get {
-            return updated[key] ?? data[key] ?? .null
+            return mutated[key]?.value ?? data[key] ?? .null
         }
         set {
             guard key != "_id" else { fatalError("_id is not writable") }
-            updated[key] = newValue
+            mutated[key] = .set(newValue)
         }
     }
+}
+
+extension ParseObject {
     
     public mutating func set<T: BSONConvertible>(_ key: String, _ value: T) {
         self[key] = value.toBSON()
@@ -67,6 +69,10 @@ extension ParseObject {
     
     public mutating func set(_ key: String, _ object: ParseObject?) {
         self["_p_\(key)"] = (object?.toPointer()).toBSON()
+    }
+    
+    public mutating func update(_ key: String, _ operation: ParseUpdateOperation) {
+        mutated[key] = operation
     }
 }
 
@@ -92,16 +98,16 @@ extension ParseObject {
         
         if let id = data["_id"] {
             
-            var updated = self.updated
-            updated["_updated_at"] = Date().toBSON()
+            var mutated = self.mutated
+            mutated["_updated_at"] = .set(Date().toBSON())
             
-            if let _acl = self.updated["_acl"] {
+            if let _acl = self.mutated["_acl"]?.value {
                 let acl = ParseACL(acl: _acl)
-                updated["_rperm"] = acl.rperm.toBSON()
-                updated["_wperm"] = acl.wperm.toBSON()
+                mutated["_rperm"] = .set(acl.rperm.toBSON())
+                mutated["_wperm"] = .set(acl.wperm.toBSON())
             }
             
-            return query.collection(`class`).findOneAndUpdate().filter(["_id": id]).update(["$set": BSON(updated)]).returnDocument(.after).execute().flatMapThrowing { result in
+            return query.collection(`class`).findOneAndUpdate().filter(["_id": id]).update(mutated.toBSONDocument()).returnDocument(.after).execute().flatMapThrowing { result in
                 
                 guard let result = result else { throw ParseError.unknown }
                 
@@ -112,24 +118,24 @@ extension ParseObject {
             
             let now = Date().toBSON()
             
-            var updated = self.updated
+            var values = self.mutated.compactMapValues { $0.value }
             
-            updated["_id"] = BSONObjectID().hex.toBSON()
-            updated["_created_at"] = now
-            updated["_updated_at"] = now
+            values["_id"] = BSONObjectID().hex.toBSON()
+            values["_created_at"] = now
+            values["_updated_at"] = now
             
-            let acl = ParseACL(acl: self.updated["_acl"] ?? [:])
-            updated["_rperm"] = acl.rperm.toBSON()
-            updated["_wperm"] = acl.wperm.toBSON()
+            let acl = ParseACL(acl: values["_acl"] ?? [:])
+            values["_rperm"] = acl.rperm.toBSON()
+            values["_wperm"] = acl.wperm.toBSON()
             
-            return query.collection(`class`).insertOne().value(updated).execute().flatMapThrowing { result in
+            return query.collection(`class`).insertOne().value(BSONDocument(values)).execute().flatMapThrowing { result in
                 
                 guard let result = result else { throw ParseError.unknown }
                 
-                var data = self.updated
+                var data = values
                 data["_id"] = result.insertedID
                 
-                return ParseObject(class: self.class, data: data)
+                return ParseObject(class: self.class, data: BSONDocument(data))
             }
         }
     }

@@ -1,6 +1,4 @@
 
-import MongoSwift
-
 extension DBConnection {
     
     public func parseQuery() -> ParseQuery {
@@ -143,7 +141,11 @@ extension ParseQuery {
         }
     }
     
-    public func findOneAndUpdate(_ update: BSONDocument, upsert: Bool = false) -> EventLoopFuture<ParseObject?> {
+    public func findOneAndUpdate(_ update: [String: BSON], upsert: Bool = false) -> EventLoopFuture<ParseObject?> {
+        return findOneAndUpdate(update.mapValues { .set($0) }, upsert: upsert)
+    }
+    
+    public func findOneAndUpdate(_ update: [String: ParseUpdateOperation], upsert: Bool = false) -> EventLoopFuture<ParseObject?> {
         
         do {
             
@@ -151,19 +153,35 @@ extension ParseQuery {
             
             let filter = try self.filterBSONDocument()
             
-            var update = update
-            
             let now = Date().toBSON()
-            if upsert { update["_created_at"] = now }
-            update["_updated_at"] = now
             
-            if let _acl = update["_acl"] {
+            var update = update
+            update["_updated_at"] = .set(now)
+            
+            if let _acl = update["_acl"]?.value {
                 let acl = ParseACL(acl: _acl)
-                update["_rperm"] = acl.rperm.toBSON()
-                update["_wperm"] = acl.wperm.toBSON()
+                update["_rperm"] = .set(acl.rperm.toBSON())
+                update["_wperm"] = .set(acl.wperm.toBSON())
             }
             
-            let query = self.mongoQuery().collection(`class`).findOneAndUpdate().filter(filter).update(update).upsert(upsert).returnDocument(.after)
+            var _update = update.toBSONDocument()
+            
+            if upsert {
+                
+                var setOnInsert: BSONDocument = [:]
+                setOnInsert["_id"] = BSONObjectID().hex.toBSON()
+                setOnInsert["_created_at"] = now
+                
+                if update["_acl"]?.value == nil {
+                    setOnInsert["_acl"] = [:]
+                    setOnInsert["_rperm"] = []
+                    setOnInsert["_wperm"] = []
+                }
+                
+                _update["$setOnInsert"] = BSON(setOnInsert)
+            }
+            
+            let query = self.mongoQuery().collection(`class`).findOneAndUpdate().filter(filter).update(_update).upsert(upsert).returnDocument(.after)
             
             return query.execute().map { $0.map { ParseObject(class: `class`, data: $0) } }
             
