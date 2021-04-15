@@ -245,3 +245,73 @@ extension ParseQuery {
         return self.execute().forEach { try body(ParseObject(class: `class`, data: $0)) }
     }
 }
+
+extension ParseQuery {
+    
+    public func pipeline(_ pipeline: [BSONDocument]) -> EventLoopFuture<[BSONDocument]> {
+        
+        do {
+            
+            guard let `class` = self.class else { throw ParseError.classNotSet }
+            
+            return self.mongoQuery().collection(`class`).aggregate().pipeline(pipeline).execute().toArray()
+            
+        } catch let error {
+            
+            return connection.eventLoop.makeFailedFuture(error)
+        }
+    }
+    
+    public func pipeline<OutputType: Codable>(_ pipeline: [BSONDocument], as outputType: OutputType.Type) -> EventLoopFuture<[OutputType]> {
+        
+        do {
+            
+            guard let `class` = self.class else { throw ParseError.classNotSet }
+            
+            return self.mongoQuery().collection(`class`).aggregate().pipeline(pipeline).execute(as: outputType).toArray()
+            
+        } catch let error {
+            
+            return connection.eventLoop.makeFailedFuture(error)
+        }
+    }
+}
+
+extension ParseQuery {
+    
+    public typealias PipelineBuilder = (DBMongoAggregateExpression<BSONDocument>) -> DBMongoAggregateExpression<BSONDocument>
+    
+    public func pipeline(_ builder: PipelineBuilder) -> EventLoopFuture<[BSONDocument]> {
+        
+        do {
+            
+            guard let `class` = self.class else { throw ParseError.classNotSet }
+            
+            var query = self.mongoQuery().collection(`class`).aggregate()
+            query = builder(query)
+            
+            return query.execute().toArray()
+            
+        } catch let error {
+            
+            return connection.eventLoop.makeFailedFuture(error)
+        }
+    }
+    
+    public func pipeline<OutputType: Codable>(_ builder: PipelineBuilder, as outputType: OutputType.Type) -> EventLoopFuture<[OutputType]> {
+        
+        do {
+            
+            guard let `class` = self.class else { throw ParseError.classNotSet }
+            
+            var query = self.mongoQuery().collection(`class`).aggregate()
+            query = builder(query)
+            
+            return query.execute(as: outputType).toArray()
+            
+        } catch let error {
+            
+            return connection.eventLoop.makeFailedFuture(error)
+        }
+    }
+}

@@ -47,7 +47,7 @@ extension ParseObject {
     
     public var keys: [String] {
         let keys = data.keys + mutated.keys
-        return keys.uniqued()
+        return Array(keys.uniqued())
     }
     
     public subscript(_ key: String) -> BSON {
