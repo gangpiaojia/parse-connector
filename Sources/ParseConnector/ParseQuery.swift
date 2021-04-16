@@ -279,7 +279,7 @@ extension ParseQuery {
 
 extension ParseQuery {
     
-    public typealias PipelineBuilder = (DBMongoAggregateExpression<BSONDocument>) -> DBMongoAggregateExpression<BSONDocument>
+    public typealias PipelineBuilder = (DBMongoAggregateExpression<BSONDocument>) throws -> DBMongoAggregateExpression<BSONDocument>
     
     public func pipeline(_ builder: PipelineBuilder) -> EventLoopFuture<[BSONDocument]> {
         
@@ -288,7 +288,7 @@ extension ParseQuery {
             guard let `class` = self.class else { throw ParseError.classNotSet }
             
             var query = self.mongoQuery().collection(`class`).aggregate()
-            query = builder(query)
+            query = try builder(query)
             
             return query.execute().toArray()
             
@@ -305,7 +305,7 @@ extension ParseQuery {
             guard let `class` = self.class else { throw ParseError.classNotSet }
             
             var query = self.mongoQuery().collection(`class`).aggregate()
-            query = builder(query)
+            query = try builder(query)
             
             return query.execute(as: outputType).toArray()
             
