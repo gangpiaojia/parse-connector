@@ -177,35 +177,6 @@ extension ParseObject {
     }
 }
 
-extension ParseObject: Encodable {
-    
-    struct CodingKey: Swift.CodingKey {
-        
-        var stringValue: String
-        
-        var intValue: Int? { nil }
-        
-        init(stringValue: String) {
-            self.stringValue = stringValue
-        }
-        
-        init?(intValue: Int) {
-            return nil
-        }
-    }
-    
-    public func encode(to encoder: Encoder) throws {
-        
-        var container = encoder.container(keyedBy: CodingKey.self)
-        
-        for key in keys {
-            let encoder = ExtendedJSONEncoder()
-            let data = try encoder.encode(self[key])
-            try container.encode(Json(decode: data), forKey: CodingKey(stringValue: key))
-        }
-    }
-}
-
 extension ParseObject {
     
     public func toPointer() -> String? {
