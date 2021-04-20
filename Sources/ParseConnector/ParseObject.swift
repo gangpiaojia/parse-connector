@@ -1,7 +1,7 @@
 
 public struct ParseObject {
     
-    let `class`: String
+    public let `class`: String
     
     var data: BSONDocument
     
