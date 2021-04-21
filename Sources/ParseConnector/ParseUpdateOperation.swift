@@ -15,6 +15,8 @@ public enum ParseUpdateOperation {
     
     case push(BSON)
     
+    case pullAll([BSON])
+    
     case popFirst
     
     case popLast
@@ -30,7 +32,7 @@ extension ParseUpdateOperation {
 
 extension Dictionary where Key == String, Value == ParseUpdateOperation {
     
-    func toBSONDocument() -> BSONDocument {
+    func toBSONDocument() throws -> BSONDocument {
         
         var set: BSONDocument = [:]
         var unset: BSONDocument = [:]
@@ -40,6 +42,7 @@ extension Dictionary where Key == String, Value == ParseUpdateOperation {
         var min: BSONDocument = [:]
         var addToSet: BSONDocument = [:]
         var push: BSONDocument = [:]
+        var pullAll: BSONDocument = [:]
         var pop: BSONDocument = [:]
         
         for (key, value) in self {
@@ -52,6 +55,7 @@ extension Dictionary where Key == String, Value == ParseUpdateOperation {
             case let .min(value): min[key] = value
             case let .addToSet(value): addToSet[key] = value
             case let .push(value): push[key] = value
+            case let .pullAll(value): pullAll[key] = BSON(value)
             case .popFirst: pop[key] = -1
             case .popLast: pop[key] = 1
             }
@@ -66,6 +70,7 @@ extension Dictionary where Key == String, Value == ParseUpdateOperation {
         if !min.isEmpty { update["$min"] = BSON(min) }
         if !addToSet.isEmpty { update["$addToSet"] = BSON(push) }
         if !push.isEmpty { update["$push"] = BSON(push) }
+        if !pullAll.isEmpty { update["$pullAll"] = BSON(pullAll) }
         if !pop.isEmpty { update["$pop"] = BSON(pop) }
         return update
     }

@@ -95,6 +95,10 @@ extension ParseObject {
         mutated[key] = .push(value.toBSON())
     }
     
+    public mutating func removeAll<T: BSONConvertible>(_ key: String, values: [T]) {
+        mutated[key] = .pullAll(values.map { $0.toBSON() })
+    }
+    
     public mutating func popFirst(for key: String) {
         mutated[key] = .popFirst
     }
@@ -124,47 +128,54 @@ extension ParseObject {
     
     private func _save(_ query: DBMongoQuery) -> EventLoopFuture<ParseObject> {
         
-        if let id = data["_id"] {
+        do {
             
-            var mutated = self.mutated
-            mutated["_updated_at"] = .set(Date().toBSON())
-            
-            if let _acl = self.mutated["_acl"]?.value {
-                let acl = ParseACL(acl: _acl)
-                mutated["_rperm"] = .set(acl.rperm.toBSON())
-                mutated["_wperm"] = .set(acl.wperm.toBSON())
+            if let id = data["_id"] {
+                
+                var mutated = self.mutated
+                mutated["_updated_at"] = .set(Date().toBSON())
+                
+                if let _acl = self.mutated["_acl"]?.value {
+                    let acl = ParseACL(acl: _acl)
+                    mutated["_rperm"] = .set(acl.rperm.toBSON())
+                    mutated["_wperm"] = .set(acl.wperm.toBSON())
+                }
+                
+                return try query.collection(`class`).findOneAndUpdate().filter(["_id": id]).update(mutated.toBSONDocument()).returnDocument(.after).execute().flatMapThrowing { result in
+                    
+                    guard let result = result else { throw ParseError.unknown }
+                    
+                    return ParseObject(class: `class`, data: result)
+                }
+                
+            } else {
+                
+                let now = Date().toBSON()
+                
+                var values = self.mutated.compactMapValues { $0.value }
+                
+                values["_id"] = BSONObjectID().hex.toBSON()
+                values["_created_at"] = now
+                values["_updated_at"] = now
+                
+                let acl = ParseACL(acl: values["_acl"] ?? [:])
+                values["_rperm"] = acl.rperm.toBSON()
+                values["_wperm"] = acl.wperm.toBSON()
+                
+                return query.collection(`class`).insertOne().value(BSONDocument(values)).execute().flatMapThrowing { result in
+                    
+                    guard let result = result else { throw ParseError.unknown }
+                    
+                    var data = values
+                    data["_id"] = result.insertedID
+                    
+                    return ParseObject(class: self.class, data: BSONDocument(data))
+                }
             }
             
-            return query.collection(`class`).findOneAndUpdate().filter(["_id": id]).update(mutated.toBSONDocument()).returnDocument(.after).execute().flatMapThrowing { result in
-                
-                guard let result = result else { throw ParseError.unknown }
-                
-                return ParseObject(class: `class`, data: result)
-            }
+        } catch let error {
             
-        } else {
-            
-            let now = Date().toBSON()
-            
-            var values = self.mutated.compactMapValues { $0.value }
-            
-            values["_id"] = BSONObjectID().hex.toBSON()
-            values["_created_at"] = now
-            values["_updated_at"] = now
-            
-            let acl = ParseACL(acl: values["_acl"] ?? [:])
-            values["_rperm"] = acl.rperm.toBSON()
-            values["_wperm"] = acl.wperm.toBSON()
-            
-            return query.collection(`class`).insertOne().value(BSONDocument(values)).execute().flatMapThrowing { result in
-                
-                guard let result = result else { throw ParseError.unknown }
-                
-                var data = values
-                data["_id"] = result.insertedID
-                
-                return ParseObject(class: self.class, data: BSONDocument(data))
-            }
+            return query.eventLoop.makeFailedFuture(error)
         }
     }
     

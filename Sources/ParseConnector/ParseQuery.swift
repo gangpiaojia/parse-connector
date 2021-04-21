@@ -164,7 +164,7 @@ extension ParseQuery {
                 update["_wperm"] = .set(acl.wperm.toBSON())
             }
             
-            var _update = update.toBSONDocument()
+            var _update = try update.toBSONDocument()
             
             if upsert {
                 
