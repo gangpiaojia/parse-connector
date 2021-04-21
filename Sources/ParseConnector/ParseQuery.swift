@@ -2,7 +2,7 @@
 extension DBConnection {
     
     public func parseQuery() -> ParseQuery {
-        return ParseQuery(connection: self, session: nil, class: nil, filters: [], limit: nil)
+        return ParseQuery(connection: self, session: nil, class: nil, filters: [], sort: nil, limit: nil)
     }
 }
 
@@ -15,6 +15,8 @@ public struct ParseQuery {
     let `class`: String?
     
     let filters: [MongoPredicateExpression]
+    
+    let sort: BSONDocument?
     
     let limit: Int?
 }
@@ -29,14 +31,14 @@ extension ParseQuery {
 extension ParseQuery {
     
     public func `class`(_ class: String) -> ParseQuery {
-        return ParseQuery(connection: connection, session: session, class: `class`, filters: filters, limit: nil)
+        return ParseQuery(connection: connection, session: session, class: `class`, filters: filters, sort: sort, limit: nil)
     }
 }
 
 extension ParseQuery {
     
     private func _withSession(_ session: ClientSession) -> ParseQuery {
-        return ParseQuery(connection: connection, session: session, class: `class`, filters: filters, limit: nil)
+        return ParseQuery(connection: connection, session: session, class: `class`, filters: filters, sort: sort, limit: nil)
     }
     
     public func withSession<T>(
@@ -59,14 +61,26 @@ extension ParseQuery {
     public func filter(
         _ predicate: (MongoPredicateBuilder) -> MongoPredicateExpression
     ) -> ParseQuery {
-        return ParseQuery(connection: connection, session: session, class: `class`, filters: filters + [predicate(.init())], limit: nil)
+        return ParseQuery(connection: connection, session: session, class: `class`, filters: filters + [predicate(.init())], sort: sort, limit: nil)
     }
 }
 
 extension ParseQuery {
     
+    public func sort(_ sort: BSONDocument) -> ParseQuery {
+        return ParseQuery(connection: connection, session: session, class: `class`, filters: filters, sort: sort, limit: nil)
+    }
+    
+    public func sort(_ sort: OrderedDictionary<String, DBMongoSortOrder>) -> ParseQuery {
+        return ParseQuery(connection: connection, session: session, class: `class`, filters: filters, sort: sort.toBSONDocument(), limit: nil)
+    }
+    
+}
+
+extension ParseQuery {
+    
     public func limit(_ limit: Int) -> ParseQuery {
-        return ParseQuery(connection: connection, session: session, class: `class`, filters: filters, limit: limit)
+        return ParseQuery(connection: connection, session: session, class: `class`, filters: filters, sort: sort, limit: limit)
     }
 }
 
@@ -131,7 +145,11 @@ extension ParseQuery {
             
             let filter = try self.filterBSONDocument()
             
-            let query = self.mongoQuery().collection(`class`).findOne().filter(filter)
+            var query = self.mongoQuery().collection(`class`).findOne().filter(filter)
+            
+            if let sort = self.sort {
+                query = query.sort(sort)
+            }
             
             return query.execute().map { $0.map { ParseObject(class: `class`, data: $0) } }
             
@@ -181,7 +199,11 @@ extension ParseQuery {
                 _update["$setOnInsert"] = BSON(setOnInsert)
             }
             
-            let query = self.mongoQuery().collection(`class`).findOneAndUpdate().filter(filter).update(_update).upsert(upsert).returnDocument(returnDocument)
+            var query = self.mongoQuery().collection(`class`).findOneAndUpdate().filter(filter).update(_update).upsert(upsert).returnDocument(returnDocument)
+            
+            if let sort = self.sort {
+                query = query.sort(sort)
+            }
             
             return query.execute().map { $0.map { ParseObject(class: `class`, data: $0) } }
             
@@ -199,7 +221,11 @@ extension ParseQuery {
             
             let filter = try self.filterBSONDocument()
             
-            let query = self.mongoQuery().collection(`class`).findOneAndDelete().filter(filter)
+            var query = self.mongoQuery().collection(`class`).findOneAndDelete().filter(filter)
+            
+            if let sort = self.sort {
+                query = query.sort(sort)
+            }
             
             return query.execute().map { $0.map { ParseObject(class: `class`, data: $0) } }
             
@@ -222,6 +248,10 @@ extension ParseQuery {
             let filter = try self.filterBSONDocument()
             
             var query = self.mongoQuery().collection(`class`).find().filter(filter)
+            
+            if let sort = self.sort {
+                query = query.sort(sort)
+            }
             
             if let limit = limit {
                 query = query.limit(limit)
