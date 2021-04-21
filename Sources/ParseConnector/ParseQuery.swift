@@ -141,11 +141,11 @@ extension ParseQuery {
         }
     }
     
-    public func findOneAndUpdate(_ update: [String: BSON], upsert: Bool = false) -> EventLoopFuture<ParseObject?> {
-        return findOneAndUpdate(update.mapValues { .set($0) }, upsert: upsert)
+    public func findOneAndUpdate(_ update: [String: BSON], upsert: Bool = false, returnDocument: ReturnDocument = .after) -> EventLoopFuture<ParseObject?> {
+        return findOneAndUpdate(update.mapValues { .set($0) }, upsert: upsert, returnDocument: returnDocument)
     }
     
-    public func findOneAndUpdate(_ update: [String: ParseUpdateOperation], upsert: Bool = false) -> EventLoopFuture<ParseObject?> {
+    public func findOneAndUpdate(_ update: [String: ParseUpdateOperation], upsert: Bool = false, returnDocument: ReturnDocument = .after) -> EventLoopFuture<ParseObject?> {
         
         do {
             
@@ -181,7 +181,7 @@ extension ParseQuery {
                 _update["$setOnInsert"] = BSON(setOnInsert)
             }
             
-            let query = self.mongoQuery().collection(`class`).findOneAndUpdate().filter(filter).update(_update).upsert(upsert).returnDocument(.after)
+            let query = self.mongoQuery().collection(`class`).findOneAndUpdate().filter(filter).update(_update).upsert(upsert).returnDocument(returnDocument)
             
             return query.execute().map { $0.map { ParseObject(class: `class`, data: $0) } }
             
