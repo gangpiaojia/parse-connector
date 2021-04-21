@@ -10,6 +10,14 @@ public enum ParseUpdateOperation {
     case max(BSON)
     
     case min(BSON)
+    
+    case addToSet(BSON)
+    
+    case push(BSON)
+    
+    case popFirst
+    
+    case popLast
 }
 
 extension ParseUpdateOperation {
@@ -30,6 +38,9 @@ extension Dictionary where Key == String, Value == ParseUpdateOperation {
         var mul: BSONDocument = [:]
         var max: BSONDocument = [:]
         var min: BSONDocument = [:]
+        var addToSet: BSONDocument = [:]
+        var push: BSONDocument = [:]
+        var pop: BSONDocument = [:]
         
         for (key, value) in self {
             switch value {
@@ -39,6 +50,10 @@ extension Dictionary where Key == String, Value == ParseUpdateOperation {
             case let .multiply(value): mul[key] = value
             case let .max(value): max[key] = value
             case let .min(value): min[key] = value
+            case let .addToSet(value): addToSet[key] = value
+            case let .push(value): push[key] = value
+            case .popFirst: pop[key] = -1
+            case .popLast: pop[key] = 1
             }
         }
         
@@ -49,6 +64,9 @@ extension Dictionary where Key == String, Value == ParseUpdateOperation {
         if !mul.isEmpty { update["$mul"] = BSON(mul) }
         if !max.isEmpty { update["$max"] = BSON(max) }
         if !min.isEmpty { update["$min"] = BSON(min) }
+        if !addToSet.isEmpty { update["$addToSet"] = BSON(push) }
+        if !push.isEmpty { update["$push"] = BSON(push) }
+        if !pop.isEmpty { update["$pop"] = BSON(pop) }
         return update
     }
 }

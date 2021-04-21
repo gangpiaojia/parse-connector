@@ -86,6 +86,22 @@ extension ParseObject {
     public mutating func min<T: BSONConvertible>(_ key: String, by value: T) {
         mutated[key] = .min(value.toBSON())
     }
+    
+    public mutating func addToSet<T: BSONConvertible>(_ key: String, with value: T) {
+        mutated[key] = .addToSet(value.toBSON())
+    }
+    
+    public mutating func push<T: BSONConvertible>(_ key: String, with value: T) {
+        mutated[key] = .push(value.toBSON())
+    }
+    
+    public mutating func popFirst(for key: String) {
+        mutated[key] = .popFirst
+    }
+    
+    public mutating func popLast(for key: String) {
+        mutated[key] = .popLast
+    }
 }
 
 extension ParseObject {
