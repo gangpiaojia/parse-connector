@@ -75,6 +75,21 @@ extension ParseQuery {
         return ParseQuery(connection: connection, session: session, class: `class`, filters: filters, sort: sort.toBSONDocument(), limit: nil)
     }
     
+    public func ascending(_ keys: String ...) -> ParseQuery {
+        var sort: OrderedDictionary<String, DBMongoSortOrder> = [:]
+        for key in keys {
+            sort[key] = .ascending
+        }
+        return self.sort(sort)
+    }
+    
+    public func descending(_ keys: String ...) -> ParseQuery {
+        var sort: OrderedDictionary<String, DBMongoSortOrder> = [:]
+        for key in keys {
+            sort[key] = .descending
+        }
+        return self.sort(sort)
+    }
 }
 
 extension ParseQuery {
