@@ -307,7 +307,12 @@ extension ParseQuery {
         }
     }
     
-    public func pipeline<OutputType: Codable>(_ pipeline: [BSONDocument], as outputType: OutputType.Type) -> EventLoopFuture<[OutputType]> {
+    public func pipeline(asClass class: String, _ pipeline: [BSONDocument]) -> EventLoopFuture<[ParseObject]> {
+        
+        return self.pipeline(pipeline).map { $0.map { ParseObject(class: `class`, data: $0) } }
+    }
+    
+    public func pipeline<OutputType: Codable>(as outputType: OutputType.Type, _ pipeline: [BSONDocument]) -> EventLoopFuture<[OutputType]> {
         
         do {
             
@@ -343,7 +348,12 @@ extension ParseQuery {
         }
     }
     
-    public func pipeline<OutputType: Codable>(_ builder: PipelineBuilder, as outputType: OutputType.Type) -> EventLoopFuture<[OutputType]> {
+    public func pipeline(asClass class: String, _ builder: PipelineBuilder) -> EventLoopFuture<[ParseObject]> {
+        
+        return self.pipeline(builder).map { $0.map { ParseObject(class: `class`, data: $0) } }
+    }
+    
+    public func pipeline<OutputType: Codable>(as outputType: OutputType.Type, _ builder: PipelineBuilder) -> EventLoopFuture<[OutputType]> {
         
         do {
             
