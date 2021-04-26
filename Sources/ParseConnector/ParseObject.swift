@@ -143,7 +143,7 @@ extension ParseObject {
                 
                 return try query.collection(`class`).findOneAndUpdate().filter(["_id": id]).update(mutated.toBSONDocument()).returnDocument(.after).execute().flatMapThrowing { result in
                     
-                    guard let result = result else { throw ParseError.unknown }
+                    guard let result = result else { throw ParseError.objectNotFound }
                     
                     return ParseObject(class: `class`, data: result)
                 }
