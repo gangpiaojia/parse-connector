@@ -268,7 +268,7 @@ extension ParseQuery {
                 query = query.sort(sort)
             }
             
-            if let limit = limit {
+            if let limit = self.limit {
                 query = query.limit(limit)
             }
             
@@ -299,7 +299,20 @@ extension ParseQuery {
             
             guard let `class` = self.class else { throw ParseError.classNotSet }
             
-            return self.mongoQuery().collection(`class`).aggregate().pipeline(pipeline).execute().toArray()
+            var query: [BSONDocument] = []
+            
+            let filter = try self.filterBSONDocument()
+            if !filter.isEmpty {
+                query.append(["$match": .document(filter)])
+            }
+            if let sort = self.sort {
+                query.append(["$sort": .document(sort)])
+            }
+            if let limit = self.limit {
+                query.append(["$limit": .int64(Int64(limit))])
+            }
+            
+            return self.mongoQuery().collection(`class`).aggregate().pipeline(query + pipeline).execute().toArray()
             
         } catch let error {
             
@@ -318,7 +331,20 @@ extension ParseQuery {
             
             guard let `class` = self.class else { throw ParseError.classNotSet }
             
-            return self.mongoQuery().collection(`class`).aggregate().pipeline(pipeline).execute(as: outputType).toArray()
+            var query: [BSONDocument] = []
+            
+            let filter = try self.filterBSONDocument()
+            if !filter.isEmpty {
+                query.append(["$match": .document(filter)])
+            }
+            if let sort = self.sort {
+                query.append(["$sort": .document(sort)])
+            }
+            if let limit = self.limit {
+                query.append(["$limit": .int64(Int64(limit))])
+            }
+            
+            return self.mongoQuery().collection(`class`).aggregate().pipeline(query + pipeline).execute(as: outputType).toArray()
             
         } catch let error {
             
@@ -338,6 +364,18 @@ extension ParseQuery {
             guard let `class` = self.class else { throw ParseError.classNotSet }
             
             var query = self.mongoQuery().collection(`class`).aggregate()
+            
+            let filter = try self.filterBSONDocument()
+            if !filter.isEmpty {
+                query = query.match(filter)
+            }
+            if let sort = self.sort {
+                query = query.sort(sort)
+            }
+            if let limit = self.limit {
+                query = query.limit(limit)
+            }
+            
             query = try builder(query)
             
             return query.execute().toArray()
@@ -360,6 +398,18 @@ extension ParseQuery {
             guard let `class` = self.class else { throw ParseError.classNotSet }
             
             var query = self.mongoQuery().collection(`class`).aggregate()
+            
+            let filter = try self.filterBSONDocument()
+            if !filter.isEmpty {
+                query = query.match(filter)
+            }
+            if let sort = self.sort {
+                query = query.sort(sort)
+            }
+            if let limit = self.limit {
+                query = query.limit(limit)
+            }
+            
             query = try builder(query)
             
             return query.execute(as: outputType).toArray()
