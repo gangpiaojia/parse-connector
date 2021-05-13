@@ -117,13 +117,7 @@ extension ParseQuery {
             
             guard let `class` = self.class else { throw ParseError.classNotSet }
             
-            let filter: BSONDocument
-            
-            switch filters.count {
-            case 0: filter = [:]
-            case 1: filter = try filters[0].toBSONDocument()
-            default: filter = try ["$and": BSON(filters.map { try $0.toBSONDocument() })]
-            }
+            let filter = try self.filterBSONDocument(useExpr: true)
             
             return self.mongoQuery().collection(`class`).count().filter(filter).execute()
             
@@ -136,17 +130,8 @@ extension ParseQuery {
 
 extension ParseQuery {
     
-    func filterBSONDocument() throws -> BSONDocument {
-        
-        let filter: BSONDocument
-        
-        switch filters.count {
-        case 0: filter = [:]
-        case 1: filter = try filters[0].toBSONDocument()
-        default: filter = try ["$and": BSON(filters.map { try $0.toBSONDocument() })]
-        }
-        
-        return filter
+    func filterBSONDocument(useExpr: Bool) throws -> BSONDocument {
+        return try filters.reduce { $0 && $1 }?.toBSONDocument(useExpr: useExpr) ?? [:]
     }
 }
 
@@ -158,7 +143,7 @@ extension ParseQuery {
             
             guard let `class` = self.class else { throw ParseError.classNotSet }
             
-            let filter = try self.filterBSONDocument()
+            let filter = try self.filterBSONDocument(useExpr: false)
             
             var query = self.mongoQuery().collection(`class`).findOne().filter(filter)
             
@@ -184,7 +169,7 @@ extension ParseQuery {
             
             guard let `class` = self.class else { throw ParseError.classNotSet }
             
-            let filter = try self.filterBSONDocument()
+            let filter = try self.filterBSONDocument(useExpr: false)
             
             let now = Date().toBSON()
             
@@ -234,7 +219,7 @@ extension ParseQuery {
             
             guard let `class` = self.class else { throw ParseError.classNotSet }
             
-            let filter = try self.filterBSONDocument()
+            let filter = try self.filterBSONDocument(useExpr: false)
             
             var query = self.mongoQuery().collection(`class`).findOneAndDelete().filter(filter)
             
@@ -260,7 +245,7 @@ extension ParseQuery {
             
             guard let `class` = self.class else { throw ParseError.classNotSet }
             
-            let filter = try self.filterBSONDocument()
+            let filter = try self.filterBSONDocument(useExpr: false)
             
             var query = self.mongoQuery().collection(`class`).find().filter(filter)
             
@@ -301,7 +286,7 @@ extension ParseQuery {
             
             var query: [BSONDocument] = []
             
-            let filter = try self.filterBSONDocument()
+            let filter = try self.filterBSONDocument(useExpr: true)
             if !filter.isEmpty {
                 query.append(["$match": .document(filter)])
             }
@@ -333,7 +318,7 @@ extension ParseQuery {
             
             var query: [BSONDocument] = []
             
-            let filter = try self.filterBSONDocument()
+            let filter = try self.filterBSONDocument(useExpr: true)
             if !filter.isEmpty {
                 query.append(["$match": .document(filter)])
             }
@@ -365,7 +350,7 @@ extension ParseQuery {
             
             var query = self.mongoQuery().collection(`class`).aggregate()
             
-            let filter = try self.filterBSONDocument()
+            let filter = try self.filterBSONDocument(useExpr: true)
             if !filter.isEmpty {
                 query = query.match(filter)
             }
@@ -399,7 +384,7 @@ extension ParseQuery {
             
             var query = self.mongoQuery().collection(`class`).aggregate()
             
-            let filter = try self.filterBSONDocument()
+            let filter = try self.filterBSONDocument(useExpr: true)
             if !filter.isEmpty {
                 query = query.match(filter)
             }
