@@ -52,7 +52,7 @@ extension ParseObject {
     
     public subscript(_ key: String) -> BSON {
         get {
-            return mutated[key]?.value ?? data[key] ?? .null
+            return mutated[key]?.value ?? data[key] ?? .undefined
         }
         set {
             guard key != "_id" else { fatalError("_id is not writable") }
