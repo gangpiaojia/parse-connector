@@ -2,15 +2,13 @@
 extension DBConnection {
     
     public func parseQuery() -> ParseQuery {
-        return ParseQuery(connection: self, session: nil, class: nil, filters: [], sort: nil, limit: nil)
+        return ParseQuery(connection: self, class: nil, filters: [], sort: nil, limit: nil)
     }
 }
 
 public struct ParseQuery {
     
     let connection: DBConnection
-    
-    let session: ClientSession?
     
     let `class`: String?
     
@@ -23,36 +21,28 @@ public struct ParseQuery {
 
 extension ParseQuery {
     
-    public var eventLoop: EventLoop {
-        return connection.eventLoop
+    public var eventLoopGroup: EventLoopGroup {
+        return connection.eventLoopGroup
+    }
+    
+    func mongoQuery() -> DBMongoQuery {
+        return connection.mongoQuery()
     }
 }
 
 extension ParseQuery {
     
     public func `class`(_ class: String) -> ParseQuery {
-        return ParseQuery(connection: connection, session: session, class: `class`, filters: filters, sort: sort, limit: nil)
+        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, limit: nil)
     }
 }
 
 extension ParseQuery {
     
-    private func _withSession(_ session: ClientSession) -> ParseQuery {
-        return ParseQuery(connection: connection, session: session, class: `class`, filters: filters, sort: sort, limit: nil)
-    }
-    
-    public func withSession<T>(
-        options: ClientSessionOptions? = nil,
-        _ sessionBody: (ParseQuery) throws -> EventLoopFuture<T>
-    ) -> EventLoopFuture<T> {
-        return connection.mongoQuery().withSession(options: options) { try sessionBody(self._withSession($0)) }
-    }
-    
     public func withTransaction<T>(
-        options: ClientSessionOptions? = nil,
         _ transactionBody: @escaping (ParseQuery) throws -> EventLoopFuture<T>
     ) -> EventLoopFuture<T> {
-        return connection.mongoQuery().withTransaction(options: options) { try transactionBody(self._withSession($0)) }
+        return connection.mongoQuery().withTransaction { _ in try transactionBody(self) }
     }
 }
 
@@ -61,18 +51,18 @@ extension ParseQuery {
     public func filter(
         _ predicate: (MongoPredicateBuilder) -> MongoPredicateExpression
     ) -> ParseQuery {
-        return ParseQuery(connection: connection, session: session, class: `class`, filters: filters + [predicate(.init())], sort: sort, limit: nil)
+        return ParseQuery(connection: connection, class: `class`, filters: filters + [predicate(.init())], sort: sort, limit: nil)
     }
 }
 
 extension ParseQuery {
     
     public func sort(_ sort: BSONDocument) -> ParseQuery {
-        return ParseQuery(connection: connection, session: session, class: `class`, filters: filters, sort: sort, limit: nil)
+        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, limit: nil)
     }
     
     public func sort(_ sort: OrderedDictionary<String, DBMongoSortOrder>) -> ParseQuery {
-        return ParseQuery(connection: connection, session: session, class: `class`, filters: filters, sort: sort.toBSONDocument(), limit: nil)
+        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort.toBSONDocument(), limit: nil)
     }
     
     public func ascending(_ keys: String ...) -> ParseQuery {
@@ -95,17 +85,7 @@ extension ParseQuery {
 extension ParseQuery {
     
     public func limit(_ limit: Int) -> ParseQuery {
-        return ParseQuery(connection: connection, session: session, class: `class`, filters: filters, sort: sort, limit: limit)
-    }
-}
-
-extension ParseQuery {
-    
-    func mongoQuery() -> DBMongoQuery {
-        if let session = self.session {
-            return connection.mongoQuery().session(session)
-        }
-        return connection.mongoQuery()
+        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, limit: limit)
     }
 }
 
@@ -130,7 +110,7 @@ extension ParseQuery {
             
         } catch let error {
             
-            return connection.eventLoop.makeFailedFuture(error)
+            return connection.eventLoopGroup.next().makeFailedFuture(error)
         }
     }
 }
@@ -155,7 +135,7 @@ extension ParseQuery {
             
         } catch let error {
             
-            return connection.eventLoop.makeFailedFuture(error)
+            return connection.eventLoopGroup.next().makeFailedFuture(error)
         }
     }
     
@@ -209,7 +189,7 @@ extension ParseQuery {
             
         } catch let error {
             
-            return connection.eventLoop.makeFailedFuture(error)
+            return connection.eventLoopGroup.next().makeFailedFuture(error)
         }
     }
     
@@ -231,7 +211,7 @@ extension ParseQuery {
             
         } catch let error {
             
-            return connection.eventLoop.makeFailedFuture(error)
+            return connection.eventLoopGroup.next().makeFailedFuture(error)
         }
     }
     
@@ -261,17 +241,17 @@ extension ParseQuery {
             
         } catch let error {
             
-            return connection.eventLoop.makeFailedFuture(error)
+            return connection.eventLoopGroup.next().makeFailedFuture(error)
         }
     }
     
     public func toArray() -> EventLoopFuture<[ParseObject]> {
-        guard let `class` = self.class else { return connection.eventLoop.makeFailedFuture(ParseError.classNotSet) }
+        guard let `class` = self.class else { return connection.eventLoopGroup.next().makeFailedFuture(ParseError.classNotSet) }
         return self.execute().toArray().map { $0.map { ParseObject(class: `class`, data: $0) } }
     }
     
     public func forEach(_ body: @escaping (ParseObject) throws -> Void) -> EventLoopFuture<Void> {
-        guard let `class` = self.class else { return connection.eventLoop.makeFailedFuture(ParseError.classNotSet) }
+        guard let `class` = self.class else { return connection.eventLoopGroup.next().makeFailedFuture(ParseError.classNotSet) }
         return self.execute().forEach { try body(ParseObject(class: `class`, data: $0)) }
     }
 }
@@ -301,7 +281,7 @@ extension ParseQuery {
             
         } catch let error {
             
-            return connection.eventLoop.makeFailedFuture(error)
+            return connection.eventLoopGroup.next().makeFailedFuture(error)
         }
     }
     
@@ -333,7 +313,7 @@ extension ParseQuery {
             
         } catch let error {
             
-            return connection.eventLoop.makeFailedFuture(error)
+            return connection.eventLoopGroup.next().makeFailedFuture(error)
         }
     }
 }
@@ -367,7 +347,7 @@ extension ParseQuery {
             
         } catch let error {
             
-            return connection.eventLoop.makeFailedFuture(error)
+            return connection.eventLoopGroup.next().makeFailedFuture(error)
         }
     }
     
@@ -401,7 +381,7 @@ extension ParseQuery {
             
         } catch let error {
             
-            return connection.eventLoop.makeFailedFuture(error)
+            return connection.eventLoopGroup.next().makeFailedFuture(error)
         }
     }
 }

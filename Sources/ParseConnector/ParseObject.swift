@@ -116,11 +116,11 @@ extension ParseObject {
     }
     
     public func fetch(from connection: DBConnection) -> EventLoopFuture<ParseObject?> {
-        return self._fetch(connection.mongoQuery(), on: connection.eventLoop)
+        return self._fetch(connection.mongoQuery(), on: connection.eventLoopGroup.next())
     }
     
     public func fetch(from connection: ParseQuery) -> EventLoopFuture<ParseObject?> {
-        return self._fetch(connection.mongoQuery(), on: connection.eventLoop)
+        return self._fetch(connection.mongoQuery(), on: connection.eventLoopGroup.next())
     }
 }
 
@@ -175,7 +175,7 @@ extension ParseObject {
             
         } catch let error {
             
-            return query.eventLoop.makeFailedFuture(error)
+            return query.eventLoopGroup.next().makeFailedFuture(error)
         }
     }
     
@@ -196,11 +196,11 @@ extension ParseObject {
     }
     
     public func delete(from connection: DBConnection) -> EventLoopFuture<Void> {
-        return self._delete(connection.mongoQuery(), on: connection.eventLoop)
+        return self._delete(connection.mongoQuery(), on: connection.eventLoopGroup.next())
     }
     
     public func delete(from connection: ParseQuery) -> EventLoopFuture<Void> {
-        return self._delete(connection.mongoQuery(), on: connection.eventLoop)
+        return self._delete(connection.mongoQuery(), on: connection.eventLoopGroup.next())
     }
 }
 
