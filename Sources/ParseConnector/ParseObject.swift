@@ -110,17 +110,35 @@ extension ParseObject {
 
 extension ParseObject {
     
-    private func _fetch(_ query: DBMongoQuery, on eventLoop: EventLoop) -> EventLoopFuture<ParseObject?> {
+    private func _fetch<S: Sequence>(_ query: DBMongoQuery, keys: S, on eventLoop: EventLoop) -> EventLoopFuture<ParseObject?> where S.Element == String {
+        
         guard let id = data["_id"] else { return eventLoop.makeFailedFuture(ParseError.nullObjectId) }
-        return query.collection(`class`).findOne().filter(["_id": id]).execute().map { $0.map { ParseObject(class: `class`, data: $0) } }
+        
+        var query = query.collection(`class`).findOne().filter(["_id": id])
+        
+        let keys = Array(keys)
+        if !keys.isEmpty {
+            let projection = Dictionary(uniqueKeysWithValues: keys.map { ($0, 1) })
+            query = query.projection(BSONDocument(projection))
+        }
+        
+        return query.execute().map { $0.map { ParseObject(class: `class`, data: $0) } }
     }
     
-    public func fetch(from connection: DBConnection) -> EventLoopFuture<ParseObject?> {
-        return self._fetch(connection.mongoQuery(), on: connection.eventLoopGroup.next())
+    public func fetch(_ keys: String..., from connection: DBConnection) -> EventLoopFuture<ParseObject?> {
+        return self._fetch(connection.mongoQuery(), keys: keys, on: connection.eventLoopGroup.next())
     }
     
-    public func fetch(from connection: ParseQuery) -> EventLoopFuture<ParseObject?> {
-        return self._fetch(connection.mongoQuery(), on: connection.eventLoopGroup.next())
+    public func fetch(_ keys: String..., from connection: ParseQuery) -> EventLoopFuture<ParseObject?> {
+        return self._fetch(connection.mongoQuery(), keys: keys, on: connection.eventLoopGroup.next())
+    }
+    
+    public func fetch<S: Sequence>(_ keys: S, from connection: DBConnection) -> EventLoopFuture<ParseObject?> where S.Element == String {
+        return self._fetch(connection.mongoQuery(), keys: keys, on: connection.eventLoopGroup.next())
+    }
+    
+    public func fetch<S: Sequence>(_ keys: S, from connection: ParseQuery) -> EventLoopFuture<ParseObject?> where S.Element == String {
+        return self._fetch(connection.mongoQuery(), keys: keys, on: connection.eventLoopGroup.next())
     }
 }
 
