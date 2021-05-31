@@ -2,7 +2,7 @@
 extension DBConnection {
     
     public func parseQuery() -> ParseQuery {
-        return ParseQuery(connection: self, class: nil, filters: [], sort: nil, limit: nil)
+        return ParseQuery(connection: self, class: nil, filters: [], sort: nil, limit: nil, include: nil)
     }
 }
 
@@ -17,6 +17,8 @@ public struct ParseQuery {
     let sort: BSONDocument?
     
     let limit: Int?
+    
+    let include: Set<String>?
 }
 
 extension ParseQuery {
@@ -33,7 +35,7 @@ extension ParseQuery {
 extension ParseQuery {
     
     public func `class`(_ class: String) -> ParseQuery {
-        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, limit: nil)
+        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, limit: limit, include: include)
     }
 }
 
@@ -51,18 +53,18 @@ extension ParseQuery {
     public func filter(
         _ predicate: (MongoPredicateBuilder) -> MongoPredicateExpression
     ) -> ParseQuery {
-        return ParseQuery(connection: connection, class: `class`, filters: filters + [predicate(.init())], sort: sort, limit: nil)
+        return ParseQuery(connection: connection, class: `class`, filters: filters + [predicate(.init())], sort: sort, limit: limit, include: include)
     }
 }
 
 extension ParseQuery {
     
     public func sort(_ sort: BSONDocument) -> ParseQuery {
-        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, limit: nil)
+        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, limit: limit, include: include)
     }
     
     public func sort(_ sort: OrderedDictionary<String, DBMongoSortOrder>) -> ParseQuery {
-        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort.toBSONDocument(), limit: nil)
+        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort.toBSONDocument(), limit: limit, include: include)
     }
     
     public func ascending(_ keys: String ...) -> ParseQuery {
@@ -85,7 +87,18 @@ extension ParseQuery {
 extension ParseQuery {
     
     public func limit(_ limit: Int) -> ParseQuery {
-        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, limit: limit)
+        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, limit: limit, include: include)
+    }
+}
+
+extension ParseQuery {
+    
+    public func include(_ keys: String ...) -> ParseQuery {
+        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, limit: limit, include: include?.union(keys) ?? Set(keys))
+    }
+    
+    public func include<S: Sequence>(_ keys: S) -> ParseQuery where S.Element == String {
+        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, limit: limit, include: include?.union(keys) ?? Set(keys))
     }
 }
 
@@ -129,6 +142,11 @@ extension ParseQuery {
             
             if let sort = self.sort {
                 query = query.sort(sort)
+            }
+            
+            if let include = self.include {
+                let projection = Dictionary(uniqueKeysWithValues: include.map { ($0, 1) })
+                query = query.projection(BSONDocument(projection))
             }
             
             return query.execute().map { $0.map { ParseObject(class: `class`, data: $0) } }
@@ -185,6 +203,11 @@ extension ParseQuery {
                 query = query.sort(sort)
             }
             
+            if let include = self.include {
+                let projection = Dictionary(uniqueKeysWithValues: include.map { ($0, 1) })
+                query = query.projection(BSONDocument(projection))
+            }
+            
             return query.execute().map { $0.map { ParseObject(class: `class`, data: $0) } }
             
         } catch let error {
@@ -205,6 +228,11 @@ extension ParseQuery {
             
             if let sort = self.sort {
                 query = query.sort(sort)
+            }
+            
+            if let include = self.include {
+                let projection = Dictionary(uniqueKeysWithValues: include.map { ($0, 1) })
+                query = query.projection(BSONDocument(projection))
             }
             
             return query.execute().map { $0.map { ParseObject(class: `class`, data: $0) } }
@@ -235,6 +263,11 @@ extension ParseQuery {
             
             if let limit = self.limit {
                 query = query.limit(limit)
+            }
+            
+            if let include = self.include {
+                let projection = Dictionary(uniqueKeysWithValues: include.map { ($0, 1) })
+                query = query.projection(BSONDocument(projection))
             }
             
             return query.execute()
