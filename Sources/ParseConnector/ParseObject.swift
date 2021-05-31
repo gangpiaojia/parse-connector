@@ -116,9 +116,8 @@ extension ParseObject {
         
         var query = query.collection(`class`).findOne().filter(["_id": id])
         
-        let keys = Array(keys)
-        if !keys.isEmpty {
-            let projection = Dictionary(uniqueKeysWithValues: keys.map { ($0, 1) })
+        let projection = Dictionary(uniqueKeysWithValues: keys.map { ($0, 1) })
+        if !projection.isEmpty {
             query = query.projection(BSONDocument(projection))
         }
         
