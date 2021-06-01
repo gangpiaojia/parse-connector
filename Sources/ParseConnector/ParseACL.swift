@@ -14,6 +14,12 @@ public struct ParseACL {
     public init() {
         self.acl = ["*": ["r": true, "w": true]]
     }
+    
+    public init(_ user: ParseObject, _ perm: Perm = Perm(read: true, write: true)) {
+        guard user.class == "_User" else { fatalError() }
+        guard let id = user.id else { fatalError() }
+        self.acl = [id: perm.toBSON()]
+    }
 }
 
 extension ParseACL {
@@ -71,6 +77,11 @@ extension ParseACL {
         init(_ perm: BSONDocument) {
             self.read = perm["r"]?.boolValue == true
             self.write = perm["w"]?.boolValue == true
+        }
+        
+        public init(read: Bool, write: Bool) {
+            self.read = read
+            self.write = write
         }
     }
 }
