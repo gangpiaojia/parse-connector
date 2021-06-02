@@ -243,6 +243,22 @@ extension ParseQuery {
         }
     }
     
+    public func deleteAll() -> EventLoopFuture<Int?> {
+        
+        do {
+            
+            guard let `class` = self.class else { throw ParseError.classNotSet }
+            
+            let filter = try self.filterBSONDocument()
+            
+            return self.mongoQuery().collection(`class`).deleteMany().filter(filter).execute().map { $0?.deletedCount }
+            
+        } catch let error {
+            
+            return connection.eventLoopGroup.next().makeFailedFuture(error)
+        }
+    }
+    
 }
 
 extension ParseQuery {
