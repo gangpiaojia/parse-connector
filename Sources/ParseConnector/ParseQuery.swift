@@ -158,10 +158,22 @@ extension ParseQuery {
     }
     
     public func findOneAndUpdate(_ update: [String: BSON], upsert: Bool = false, returnDocument: ReturnDocument = .after) -> EventLoopFuture<ParseObject?> {
-        return findOneAndUpdate(update.mapValues { .set($0) }, upsert: upsert, returnDocument: returnDocument)
+        return _findOneAndUpdate(update.mapValues { .set($0) }, setOnInsert: [:], upsert: upsert, returnDocument: returnDocument)
     }
     
     public func findOneAndUpdate(_ update: [String: ParseUpdateOperation], upsert: Bool = false, returnDocument: ReturnDocument = .after) -> EventLoopFuture<ParseObject?> {
+        return _findOneAndUpdate(update, setOnInsert: [:], upsert: upsert, returnDocument: returnDocument)
+    }
+    
+    public func findOneAndUpdate(_ update: [String: BSON], setOnInsert: [String: BSON], returnDocument: ReturnDocument = .after) -> EventLoopFuture<ParseObject?> {
+        return _findOneAndUpdate(update.mapValues { .set($0) }, setOnInsert: setOnInsert, upsert: true, returnDocument: returnDocument)
+    }
+    
+    public func findOneAndUpdate(_ update: [String: ParseUpdateOperation], setOnInsert: [String: BSON], returnDocument: ReturnDocument = .after) -> EventLoopFuture<ParseObject?> {
+        return _findOneAndUpdate(update, setOnInsert: setOnInsert, upsert: true, returnDocument: returnDocument)
+    }
+    
+    private func _findOneAndUpdate(_ update: [String: ParseUpdateOperation], setOnInsert: [String: BSON], upsert: Bool, returnDocument: ReturnDocument) -> EventLoopFuture<ParseObject?> {
         
         do {
             
@@ -184,7 +196,7 @@ extension ParseQuery {
             
             if upsert {
                 
-                var setOnInsert: BSONDocument = [:]
+                var setOnInsert = setOnInsert
                 setOnInsert["_id"] = BSONObjectID().hex.toBSON()
                 setOnInsert["_created_at"] = now
                 
@@ -194,7 +206,7 @@ extension ParseQuery {
                     setOnInsert["_wperm"] = []
                 }
                 
-                _update["$setOnInsert"] = BSON(setOnInsert)
+                _update["$setOnInsert"] = setOnInsert.toBSON()
             }
             
             var query = self.mongoQuery().collection(`class`).findOneAndUpdate().filter(filter).update(_update).upsert(upsert).returnDocument(returnDocument)
