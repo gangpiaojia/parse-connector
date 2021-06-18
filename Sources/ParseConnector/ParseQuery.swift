@@ -177,8 +177,6 @@ extension ParseQuery {
         
         do {
             
-            guard let `class` = self.class else { throw ParseError.classNotSet }
-            
             let filter = try self.filterBSONDocument()
             
             let now = Date().toBSON()
@@ -209,7 +207,21 @@ extension ParseQuery {
                 _update["$setOnInsert"] = setOnInsert.toBSON()
             }
             
-            var query = self.mongoQuery().collection(`class`).findOneAndUpdate().filter(filter).update(_update).upsert(upsert).returnDocument(returnDocument)
+            return self._findOneAndUpdate(filter, _update, upsert: upsert, returnDocument: returnDocument)
+            
+        } catch let error {
+            
+            return connection.eventLoopGroup.next().makeFailedFuture(error)
+        }
+    }
+    
+    public func _findOneAndUpdate(_ filter: BSONDocument, _ update: BSONDocument, upsert: Bool, returnDocument: ReturnDocument) -> EventLoopFuture<ParseObject?> {
+        
+        do {
+            
+            guard let `class` = self.class else { throw ParseError.classNotSet }
+            
+            var query = self.mongoQuery().collection(`class`).findOneAndUpdate().filter(filter).update(update).upsert(upsert).returnDocument(returnDocument)
             
             if let sort = self.sort {
                 query = query.sort(sort)
