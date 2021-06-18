@@ -215,7 +215,7 @@ extension ParseQuery {
         }
     }
     
-    public func _findOneAndUpdate(_ filter: BSONDocument, _ update: BSONDocument, upsert: Bool, returnDocument: ReturnDocument) -> EventLoopFuture<ParseObject?> {
+    public func _findOneAndUpdate(_ filter: BSONDocument, _ update: BSONDocument, upsert: Bool = false, returnDocument: ReturnDocument = .after) -> EventLoopFuture<ParseObject?> {
         
         do {
             
