@@ -169,7 +169,7 @@ extension ParseQuery {
         return _findOneAndUpdate(update.mapValues { .set($0) }, setOnInsert: setOnInsert, upsert: true, returnDocument: returnDocument)
     }
     
-    public func findOneAndUpdate(_ update: [String: ParseUpdateOperation], setOnInsert: [String: BSON], returnDocument: ReturnDocument = .after) -> EventLoopFuture<ParseObject?> {
+    public func findOneAndUpdate(_ update: [String: ParseUpdateOperation] = [:], setOnInsert: [String: BSON], returnDocument: ReturnDocument = .after) -> EventLoopFuture<ParseObject?> {
         return _findOneAndUpdate(update, setOnInsert: setOnInsert, upsert: true, returnDocument: returnDocument)
     }
     
