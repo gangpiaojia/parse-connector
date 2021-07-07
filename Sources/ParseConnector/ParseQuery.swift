@@ -2,7 +2,7 @@
 extension DBConnection {
     
     public func parseQuery() -> ParseQuery {
-        return ParseQuery(connection: self, class: nil, filters: [], sort: nil, limit: nil, include: nil)
+        return ParseQuery(connection: self, class: nil, filters: [], sort: nil, skip: nil, limit: nil, include: nil)
     }
 }
 
@@ -15,6 +15,8 @@ public struct ParseQuery {
     let filters: [MongoPredicateExpression]
     
     let sort: BSONDocument?
+    
+    let skip: Int?
     
     let limit: Int?
     
@@ -35,7 +37,7 @@ extension ParseQuery {
 extension ParseQuery {
     
     public func `class`(_ class: String) -> ParseQuery {
-        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, limit: limit, include: include)
+        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, skip: skip, limit: limit, include: include)
     }
 }
 
@@ -53,18 +55,18 @@ extension ParseQuery {
     public func filter(
         _ predicate: (MongoPredicateBuilder) -> MongoPredicateExpression
     ) -> ParseQuery {
-        return ParseQuery(connection: connection, class: `class`, filters: filters + [predicate(.init())], sort: sort, limit: limit, include: include)
+        return ParseQuery(connection: connection, class: `class`, filters: filters + [predicate(.init())], sort: sort, skip: skip, limit: limit, include: include)
     }
 }
 
 extension ParseQuery {
     
     public func sort(_ sort: BSONDocument) -> ParseQuery {
-        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, limit: limit, include: include)
+        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, skip: skip, limit: limit, include: include)
     }
     
     public func sort(_ sort: OrderedDictionary<String, DBMongoSortOrder>) -> ParseQuery {
-        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort.toBSONDocument(), limit: limit, include: include)
+        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort.toBSONDocument(), skip: skip, limit: limit, include: include)
     }
     
     public func ascending(_ keys: String ...) -> ParseQuery {
@@ -86,19 +88,23 @@ extension ParseQuery {
 
 extension ParseQuery {
     
+    public func skip(_ skip: Int) -> ParseQuery {
+        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, skip: skip, limit: limit, include: include)
+    }
+    
     public func limit(_ limit: Int) -> ParseQuery {
-        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, limit: limit, include: include)
+        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, skip: skip, limit: limit, include: include)
     }
 }
 
 extension ParseQuery {
     
     public func include(_ keys: String ...) -> ParseQuery {
-        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, limit: limit, include: include?.union(keys) ?? Set(keys))
+        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, skip: skip, limit: limit, include: include?.union(keys) ?? Set(keys))
     }
     
     public func include<S: Sequence>(_ keys: S) -> ParseQuery where S.Element == String {
-        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, limit: limit, include: include?.union(keys) ?? Set(keys))
+        return ParseQuery(connection: connection, class: `class`, filters: filters, sort: sort, skip: skip, limit: limit, include: include?.union(keys) ?? Set(keys))
     }
 }
 
@@ -300,7 +306,9 @@ extension ParseQuery {
             if let sort = self.sort {
                 query = query.sort(sort)
             }
-            
+            if let skip = self.skip {
+                query = query.skip(skip)
+            }
             if let limit = self.limit {
                 query = query.limit(limit)
             }
@@ -410,6 +418,9 @@ extension ParseQuery {
             if let sort = self.sort {
                 query = query.sort(sort)
             }
+            if let skip = self.skip {
+                query = query.skip(skip)
+            }
             if let limit = self.limit {
                 query = query.limit(limit)
             }
@@ -443,6 +454,9 @@ extension ParseQuery {
             }
             if let sort = self.sort {
                 query = query.sort(sort)
+            }
+            if let skip = self.skip {
+                query = query.skip(skip)
             }
             if let limit = self.limit {
                 query = query.limit(limit)
