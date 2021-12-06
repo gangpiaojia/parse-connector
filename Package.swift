@@ -20,7 +20,6 @@ let package = Package(
             dependencies: [
                 .product(name: "MongoSwift", package: "mongo-swift-driver"),
                 .product(name: "DoggieDB", package: "DoggieDB"),
-                .product(name: "DBMongo", package: "DoggieDB"),
             ]
         ),
     ]
